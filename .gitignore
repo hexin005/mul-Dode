@@ -1,0 +1,57 @@
+# Logs（你的原有内容，保留）
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# 核心依赖与系统文件（你的原有内容，保留）
+node_modules
+.DS_Store
+
+# 构建产物（补充适配你的项目，覆盖更全）
+dist
+dist-ssr
+build/          # 补充：zrender目录下有build文件夹，避免构建产物提交
+*.tmp           # 补充：临时文件
+*.temp          # 补充：临时文件
+
+# 测试/覆盖率（你的原有内容，保留）
+coverage
+__screenshots__/ # Vitest 截图（你的原有内容）
+
+# 本地环境文件（重点补充：Vue项目必忽略的敏感配置）
+*.local
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# 编辑器配置（你的原有内容，优化细节）
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json  # 补充：如果需要共享vscode基础配置，保留这行；不需要则删除
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# 编译/缓存文件（你的原有内容，保留）
+*.tsbuildinfo
+.eslintcache
+
+# 测试工具（你的原有内容，保留）
+/cypress/videos/
+/cypress/screenshots/
+
+# 补充：Vue/Vite 特有的忽略项
+.cache/         # Vite 缓存目录
+vue.config.js   # 如需忽略Vue CLI配置文件（按需）
+pnpm-lock.yaml  # 补充：如果你用pnpm，忽略锁文件；如需提交则注释
+yarn.lock       # 补充：如果你用yarn，忽略锁文件；如需提交则注释
+package-lock.json # 补充：如果你用npm，忽略锁文件；如需提交则注释
