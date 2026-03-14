@@ -49,8 +49,8 @@
               type="password" 
               placeholder="请输入密码" 
               required 
-              @focus="isPasswordFocused = true"
-              @blur="isPasswordFocused = false"
+              @focus="playHideEyes"
+              @blur="resetAnim"
             />
           </div>
 
@@ -100,8 +100,8 @@
                   type="password" 
                   placeholder="确认密码" 
                   required 
-                  @focus="isPasswordFocused = true"
-                  @blur="isPasswordFocused = false"
+                  @focus="playHideEyes"
+                  @blur="resetAnim"
                 />
               </div>
             </div>
@@ -174,28 +174,27 @@ onUnmounted(() => {
   }
 });
 
-// 聚焦密码框时的行为
+// 聚焦密码框时的行为：皮影遮眼
 const playHideEyes = () => {
   if (!animInstance) return;
   try {
-    // 尝试播放特定帧片段。如果这个动画没有遮眼动作，建议把这行改成 animInstance.pause(); (即输入密码时暂停动画)
-    // animInstance.playSegments([60, 90], true); 
-    
-    // 如果想要更稳妥的做法（在不确定具体帧数的情况下），可以加快播放速度来给予反馈
-    animInstance.setSpeed(2); 
+    // playSegments 接收两个参数：[起始帧, 结束帧], forceFlag(是否强制立即播放)
+    // 假设你的皮影遮眼动作在第 60 到 90 帧（你需要根据实际 JSON 修改这两个数字）
+    animInstance.playSegments([60, 90], true); 
   } catch (e) {
     console.warn("Lottie 帧控制调整失败", e);
   }
 };
 
-// 离开密码框时的行为
+// 离开密码框时的行为：皮影放下双手，恢复循环
 const resetAnim = () => {
   if (!animInstance) return;
   try {
-    // 恢复正常速度和播放
-    animInstance.setSpeed(1);
-    animInstance.play();
-  } catch (e) {}
+    // 假设日常循环的待机动画在第 0 到 59 帧（你需要根据实际 JSON 修改这两个数字）
+    animInstance.playSegments([0, 59], true);
+  } catch (e) {
+    console.warn("Lottie 帧控制恢复失败", e);
+  }
 };
 
 
@@ -280,6 +279,12 @@ const toggleMode = () => {
   timer.value = 0;
   showUsernameHistory.value = false;
   showEmailHistory.value = false;
+
+  // === 新增：模式切换时的皮影动画反馈 ===
+  if (animInstance) {
+    // 让动画瞬间回到第 0 帧并重新播放，产生“刷新入场”的视觉感
+    animInstance.goToAndPlay(0, true); 
+  }
 };
 
 const handleSubmit = async () => {

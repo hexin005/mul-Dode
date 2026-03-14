@@ -27,13 +27,13 @@ class MultiModelAPIClient:
         # 从环境变量初始化两个不同模型的API配置
         self.models = {
             "model1": {
-                "api_key": model1_key or '9450f067-10e0-49a5-8949-4df0bbe86967',
+                "api_key": model1_key,
                 "endpoint": os.getenv('MODEL1_ENDPOINT', 'https://ark.cn-beijing.volces.com/api/v3/chat/completions'),
                 "timeout": int(os.getenv('MODEL1_TIMEOUT', '60')),
                 "default_model": os.getenv('MODEL1_DEFAULT_MODEL', 'doubao-seed-1-6-vision-250815')
             },
             "model2": {
-                "api_key": model2_key or 'ebc60465-6a32-49d6-9afd-40da7c4b9f1c',
+                "api_key": model2_key,
                 "endpoint": os.getenv('MODEL2_ENDPOINT', 'https://ark.cn-beijing.volces.com/api/v3/chat/completions'),
                 "timeout": int(os.getenv('MODEL2_TIMEOUT', '60')),
                 "default_model": os.getenv('MODEL2_DEFAULT_MODEL', 'doubao-seed-1-6-vision-250815')

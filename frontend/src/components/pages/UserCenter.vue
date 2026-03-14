@@ -70,18 +70,27 @@ const router = useRouter();
 const user = ref({});
 
 onMounted(() => {
-  // 从本地加载用户信息
-  const savedUser = localStorage.getItem('user');
+  // ✅ 核心修复：同时尝试从 localStorage 和 sessionStorage 读取
+  const savedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+  
   if (savedUser) {
     user.value = JSON.parse(savedUser);
   } else {
+    // 两边都没找到，说明真的没登录，踢回登录页
     router.push('/login');
   }
 });
 
 const handleLogout = () => {
+  // ✅ 退出归隐：把两边的记录都抹除得干干净净
   localStorage.removeItem('user');
-  router.push('/page1'); // 返回首页
+  sessionStorage.removeItem('user');
+  
+  // 如果你存了 token，建议顺手也清理掉
+  localStorage.removeItem('token');
+  sessionStorage.removeItem('token');
+  
+  router.push('/login'); // 返回登录页 (或者你的首页 /page1)
 };
 </script>
 
