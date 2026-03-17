@@ -36,7 +36,7 @@ class MultiModelAPIClient:
                 "api_key": model2_key,
                 "endpoint": os.getenv('MODEL2_ENDPOINT', 'https://ark.cn-beijing.volces.com/api/v3/chat/completions'),
                 "timeout": int(os.getenv('MODEL2_TIMEOUT', '60')),
-                "default_model": os.getenv('MODEL2_DEFAULT_MODEL', 'doubao-seed-1-6-vision-250815')
+                "default_model": os.getenv('MODEL2_DEFAULT_MODEL', 'doubao-seedream-4-0-250828')
             }
         }
         

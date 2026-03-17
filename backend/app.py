@@ -11,8 +11,8 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 import os
 # 如果你还没有使用 dotenv 加载环境变量，建议引入以下两行
-# from dotenv import load_dotenv
-# load_dotenv() 
+from dotenv import load_dotenv
+load_dotenv() 
 
 # 声明 Mail 实例 (必须在工厂函数外)
 mail = Mail()
