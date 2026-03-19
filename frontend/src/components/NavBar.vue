@@ -6,11 +6,12 @@
           <span class="website-name">光影千年·皮影数字化传承</span>
         </div>
         <div class="top-right">
-          <!-- 日期信息 -->
           <div class="date-info">{{ formattedDate }}</div>
-          <div class="user-avatar" @click="handleLogin" role="button" tabindex="0" @keydown.enter="handleLogin" @keydown.space="handleLogin">
-            <div class="avatar-icon">
-              
+          
+          <div class="user-avatar" @click="handleAvatarClick" role="button" tabindex="0" @keydown.enter="handleAvatarClick" @keydown.space="handleAvatarClick">
+            <img v-if="userInfo?.avatar" :src="userInfo.avatar" class="avatar-img-nav" alt="用户头像" />
+            <div v-else-if="userInfo" class="avatar-placeholder-nav">{{ userInfo.username?.charAt(0) || '访' }}</div>
+            <div v-else class="avatar-icon">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                   <path
                     d="M12 12C14.7614 12 17 9.76142 17 7C17 4.23858 14.7614 2 12 2C9.23858 2 7 4.23858 7 7C7 9.76142 9.23858 12 12 12Z"
@@ -18,7 +19,6 @@
                   <path d="M20 21C20 17.134 16.4183 14 12 14C7.58172 14 4 17.134 4 21" stroke="currentColor" 
                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                 </svg>
-              
             </div>
           </div>
         </div>
@@ -41,12 +41,8 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
-// 在 script setup 中引入路由
-import { useRouter } from 'vue-router';
-
-
-
+import { ref, computed, onMounted, watch } from 'vue';
+import { useRouter, useRoute } from 'vue-router';
 
 // 定义props
 const props = defineProps({
@@ -74,13 +70,37 @@ const formattedDate = computed(() => {
   });
 });
 
-// 处理登录点击事件
 const router = useRouter();
+const route = useRoute();
+const userInfo = ref(null);
 
-const handleLogin = () => {
-  // 跳转到登录页面
-  // alert('点击成功！'); // 看看有没有弹窗
-  router.push('/login');
+// 检查登录状态并加载用户信息
+const checkUserStatus = () => {
+  // 核心修复：同时检查 localStorage 和 sessionStorage
+  const savedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+  if (savedUser) {
+    userInfo.value = JSON.parse(savedUser);
+  } else {
+    userInfo.value = null;
+  }
+};
+
+// 监听路由变化，一旦回到首页就重新检查缓存，确保头像最新
+watch(() => route.path, () => {
+  checkUserStatus();
+});
+
+onMounted(() => {
+  checkUserStatus();
+});
+
+// 处理头像点击事件
+const handleAvatarClick = () => {
+  if (userInfo.value) {
+    router.push('/user-center');
+  } else {
+    router.push('/login');
+  }
 };
 </script>
 
@@ -95,7 +115,6 @@ const handleLogin = () => {
   padding: 0;
 }
 
-/* 导航栏容器 - 修改为使用背景图片 */
 .nav-container {
   position: absolute;
   top: 0;
@@ -108,7 +127,6 @@ const handleLogin = () => {
   transition: all 0.3s ease;
 }
 
-/* 顶部栏样式 - 移除半透明背景，使用容器的背景图片 */
 .top-bar {
   display: flex;
   justify-content: space-between;
@@ -120,14 +138,12 @@ const handleLogin = () => {
   border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 
-/* 左侧logo和网站名称 */
 .top-left {
   display: flex;
   align-items: center;
   gap: 15px;
 }
 
-/* Logo样式  */
 .logo {
   width: 60px;
   height: 60px;
@@ -140,7 +156,6 @@ const handleLogin = () => {
   transform: scale(1.05) rotate(2deg);
 }
 
-/* 网站名称样式  */
 .website-name {
   font-family: 'Ma Shan Zheng', cursive, 'Noto Serif SC', serif;
   font-size: 24px;
@@ -150,14 +165,12 @@ const handleLogin = () => {
   font-weight: bold;
 }
 
-/* 右侧信息区域 */
 .top-right {
   display: flex;
   align-items: center;
   gap: 30px;
 }
 
-/* 日期信息样式 - 移除背景色和阴影 */
 .date-info {
   font-family: 'Noto Serif SC', serif;
   font-size: 16px;
@@ -165,13 +178,12 @@ const handleLogin = () => {
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
 }
 
-/* 用户头像样式 - 半透明效果 */
 .user-avatar {
   cursor: pointer;
   width: 48px;
   height: 48px;
   border-radius: 50%;
-  background: red;
+  background: #f56c6c;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -180,6 +192,7 @@ const handleLogin = () => {
   position: relative;
   backdrop-filter: blur(5px);
   -webkit-backdrop-filter: blur(5px);
+  overflow: hidden;
 }
 
 .user-avatar:hover {
@@ -192,15 +205,28 @@ const handleLogin = () => {
   transform: scale(0.95);
 }
 
-/* 头像图标样式 - 白色图标增强可见性 */
+.avatar-img-nav {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.avatar-placeholder-nav {
+  color: #ffffff;
+  font-weight: bold;
+  font-size: 1.2rem;
+}
+
 .avatar-icon {
   color: #fff;
   width: 24px;
   height: 24px;
   filter: drop-shadow(1px 1px 2px rgba(0, 0, 0, 0.5));
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* 导航栏主体 - 移除半透明背景，使用容器的背景图片 */
 .nav-bar {
   padding: 10px 0;
   background: none;
@@ -208,7 +234,6 @@ const handleLogin = () => {
   -webkit-backdrop-filter: blur(5px);
 }
 
-/* 导航列表 */
 .nav-list {
   display: flex;
   justify-content: center;
@@ -219,7 +244,6 @@ const handleLogin = () => {
   gap: 10px;
 }
 
-/* 导航项样式 - 白色文字增强可读性 */
 .nav-item {
   padding: 12px 24px;
   cursor: pointer;
@@ -234,20 +258,17 @@ const handleLogin = () => {
   text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.7);
 }
 
-/* 导航项悬停效果 - 半透明背景 */
 .nav-item:hover {
   background: rgba(255, 255, 255, 0.2);
   transform: translateY(-2px);
 }
 
-/* 导航项激活状态 - 只有下划线，移除背景色 */
 .nav-item.active {
   font-weight: bold;
   position: relative;
   background: none;
 }
 
-/* 激活状态下的装饰线 - 增强下划线效果 */
 .nav-item.active::after {
   content: '';
   position: absolute;
@@ -261,111 +282,53 @@ const handleLogin = () => {
 }
 
 @keyframes slideIn {
-  from {
-    width: 0;
-    left: 50%;
-  }
-  to {
-    width: 100%;
-    left: 0;
-  }
+  from { width: 0; left: 50%; }
+  to { width: 100%; left: 0; }
 }
 
-/* 导航项点击反馈 */
 .nav-item:active {
   transform: translateY(0);
   background: rgba(255, 255, 255, 0.4);
 }
 
-/* 响应式设计 */
 @media (max-width: 1200px) {
-  .top-bar {
-    padding: 15px 30px;
-  }
-  
-  .website-name {
-    font-size: 20px;
-  }
-  
-  .nav-item {
-    font-size: 16px;
-    padding: 10px 20px;
-  }
+  .top-bar { padding: 15px 30px; }
+  .website-name { font-size: 20px; }
+  .nav-item { font-size: 16px; padding: 10px 20px; }
 }
 
 @media (max-width: 768px) {
-  .top-bar {
-    flex-direction: column;
-    gap: 15px;
-    padding: 15px 20px;
-  }
-  
-  .top-left,
-  .top-right {
-    width: 100%;
-    justify-content: center;
-  }
-  
-  .website-name {
-    font-size: 18px;
-  }
-  
-  .nav-list {
-    flex-direction: column;
-    align-items: center;
-    gap: 5px;
-  }
-  
-  .nav-item {
-    width: 100%;
-    text-align: center;
-    border-radius: 0;
-  }
+  .top-bar { flex-direction: column; gap: 15px; padding: 15px 20px; }
+  .top-left, .top-right { width: 100%; justify-content: center; }
+  .website-name { font-size: 18px; }
+  .nav-list { flex-direction: column; align-items: center; gap: 5px; }
+  .nav-item { width: 100%; text-align: center; border-radius: 0; }
 }
 
-/* 动画效果 */
 @keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+  from { opacity: 0; transform: translateY(-20px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .nav-container {
   animation: fadeIn 0.6s ease-out;
 }
 
-/* 滚动时的导航栏样式变化 - 使用背景图片 */
 .nav-container.scrolled {
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
   background-image: url('../asset/img/opacity-b25.png');
   background-repeat: repeat;
 }
 
-.nav-container.scrolled .top-bar {
-  background: none;
-}
+.nav-container.scrolled .top-bar { background: none; }
+.nav-container.scrolled .nav-bar { background: none; }
 
-.nav-container.scrolled .nav-bar {
-  background: none;
-}
-
-/* 确保在深色背景上的可读性 */
 .nav-container.dark-bg .website-name,
 .nav-container.dark-bg .date-info,
-.nav-container.dark-bg .nav-item {
-  color: #fff;
-}
+.nav-container.dark-bg .nav-item { color: #fff; }
 
-.nav-container.dark-bg .nav-item.active::after {
-  background: #fff;
-}
+.nav-container.dark-bg .nav-item.active::after { background: #fff; }
 
-/* 确保在浅色背景上的可读性 - 使用背景图片 */
 .nav-container.light-bg .website-name,
 .nav-container.light-bg .date-info,
 .nav-container.light-bg .nav-item {
@@ -374,22 +337,10 @@ const handleLogin = () => {
 }
 
 .nav-container.light-bg .top-bar,
-.nav-container.light-bg .nav-bar {
-  background: none;
-}
-
-.nav-container.light-bg .nav-item:hover {
-  background: rgba(0, 0, 0, 0.15);
-}
-
-.nav-container.light-bg .nav-item.active {
-  background: none;
-}
-
-.nav-container.light-bg .nav-item.active::after {
-  background: #333;
-}
-
+.nav-container.light-bg .nav-bar { background: none; }
+.nav-container.light-bg .nav-item:hover { background: rgba(0, 0, 0, 0.15); }
+.nav-container.light-bg .nav-item.active { background: none; }
+.nav-container.light-bg .nav-item.active::after { background: #333; }
 .nav-container.light-bg .avatar-icon {
   color: #333;
   filter: drop-shadow(1px 1px 2px rgba(255, 255, 255, 0.8));

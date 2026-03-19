@@ -47,3 +47,13 @@ export const userRegister = (data) => {
 export const userLogin = (data) => {
   return userAxios.post('/user/login', data);
 };
+
+// 👇 新增：上传头像
+export const uploadAvatar = (formData) => {
+  // 注意：axios上传文件不要在请求里写死 application/json，浏览器会自动处理 multipart/form-data
+  return userAxios.post('/user/avatar', formData, {
+    headers: {
+      'Content-Type': 'multipart/form-data'
+    }
+  });
+};

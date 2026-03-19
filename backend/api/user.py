@@ -5,6 +5,9 @@ from models.models import User
 import re
 import random
 import time
+import os
+import uuid
+from datetime import timedelta
 
 # 创建蓝图，前缀/api/user
 user_bp = Blueprint('user', __name__, url_prefix='/api/user')
@@ -140,8 +143,14 @@ def login():
         return jsonify({"code": 401, "msg": "名号或秘钥错误"}), 401
     
     # 3. 构造响应
-    user_info = {"id": user.id, "username": user.username, "email": user.email}
-    res = jsonify({"code": 200, "msg": "欢迎归阁", "user": user_info})
+    # 3. 构造响应
+    user_info = {
+        "id": user.id, 
+        "username": user.username, 
+        "email": user.email,
+        "avatar": user.avatar_url  # ⚠️ 关键：必须把刚才在模型里加的头像字段传给前端！
+    }
+    res = jsonify({"code": 200, "msg": "登录成功", "user": user_info})
     
     # 4. 记住我功能：设置cookie
     if remember:
@@ -158,3 +167,64 @@ def login():
     session['user_id'] = user.id
     
     return res
+
+
+# 👇 在文件最底部，新增上传头像接口
+# 图片保存目录：指向你架构中的 backend/images/user_image/
+UPLOAD_FOLDER = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'images/user_image')
+
+@user_bp.route('/avatar', methods=['POST'])
+def upload_avatar():
+    # 接收前端传来的用户名（因为咱们还没用JWT，暂时用用户名识别身份）
+    username = request.form.get('username')
+    if not username:
+        return jsonify({"code": 400, "msg": "未提供用户信息"}), 400
+        
+    if 'avatar' not in request.files:
+        return jsonify({"code": 400, "msg": "没有找到图片文件"}), 400
+        
+    file = request.files['avatar']
+    if file.filename == '':
+        return jsonify({"code": 400, "msg": "未选择文件"}), 400
+
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        return jsonify({"code": 404, "msg": "用户不存在"}), 404
+
+    # 🌟 新增：物理删除旧头像机制 🌟
+    if user.avatar_url:
+        # 提取出旧图片的文件名 (例如从 http://localhost:5000/images/user_image/avatar_123.jpg 提取出 avatar_123.jpg)
+        old_filename = user.avatar_url.split('/')[-1]
+        old_filepath = os.path.join(UPLOAD_FOLDER, old_filename)
+        
+        # 如果硬盘上确实存在这个旧文件，就把它删掉
+        if os.path.exists(old_filepath):
+            try:
+                os.remove(old_filepath)
+            except Exception as e:
+                current_app.logger.warning(f"删除旧头像失败: {str(e)}")
+
+    # 确保 images 文件夹存在
+    os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+    # 生成安全且唯一的文件名 (防覆盖、防乱码)
+    ext = file.filename.rsplit('.', 1)[1].lower() if '.' in file.filename else 'jpg'
+    unique_filename = f"avatar_{uuid.uuid4().hex}.{ext}"
+    save_path = os.path.join(UPLOAD_FOLDER, unique_filename)
+    
+    # 保存到硬盘
+    file.save(save_path)
+    
+    # 因为你的 app.py 里配了 @app.route('/images/<path:filename>')
+    # 所以网络访问路径就是 http://localhost:5000/images/xxx.jpg
+    avatar_url = f"http://localhost:5000/images/user_image/{unique_filename}"
+    
+    # 更新数据库
+    user.avatar_url = avatar_url
+    db.session.commit()
+    
+    return jsonify({
+        "code": 200,
+        "msg": "上传成功",
+        "data": {"avatarUrl": avatar_url}
+    })
