@@ -228,3 +228,37 @@ def upload_avatar():
         "msg": "上传成功",
         "data": {"avatarUrl": avatar_url}
     })
+
+# 在 user.py 中添加
+@user_bp.route('/info', methods=['GET'])
+def get_user_info():
+    user_id = session.get('user_id')
+    if not user_id:
+        return jsonify({"code": 401, "msg": "未登录"}), 401
+    
+    user = User.query.get(user_id)
+    if not user:
+        return jsonify({"code": 404, "msg": "用户不存在"}), 404
+        
+    return jsonify({
+        "code": 200,
+        "msg": "获取成功",
+        "data": {
+            "username": user.username,
+            "avatar": user.avatar_url,
+            "email": user.email
+        }
+    })
+
+# user.py
+@user_bp.route('/logout', methods=['POST'])
+def logout():
+    session.clear()  # 清除服务器端 Session 记录
+    response = jsonify({"code": 200, "msg": "登出成功"})
+    
+    # 彻底抹除 Cookie：设置过期时间为 0
+    # 注意：如果你的 Cookie 设置了 path，这里也要对应上
+    response.set_cookie('session', '', expires=0, path='/')
+    response.delete_cookie('remember_token', path='/')
+    
+    return response

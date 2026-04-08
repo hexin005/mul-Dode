@@ -73,15 +73,29 @@
               </div>
 
               <div 
-                v-for="(msg, index) in messages" 
-                :key="index" 
-                :class="['message-row', msg.role]"
-              >
-                <!-- <div class="avatar">{{ msg.role === 'user' ? '' : '🤖' }}</div> -->
-                 <div v-if="msg.role !== 'user'" class="avatar">🤖</div>
-                <!-- Markdown 渲染 -->
+                  v-for="(msg, index) in messages" 
+                  :key="index" 
+                  :class="['message-row', msg.role]"
+                >
+                <div class="avatar">
+                  <template v-if="msg.role === 'user'">
+                    <img 
+                      v-if="userAvatar && userAvatar !== ''" 
+                      :src="userAvatar" 
+                      class="user-avatar-img" 
+                      alt="avatar"
+                    >
+                    <span v-else class="default-icon">👤</span>
+                  </template>
+                  
+                  <template v-else>
+                    <span class="icon">🤖</span>
+                  </template>
+                </div>
+
                 <div class="bubble markdown-body" v-html="renderContent(msg.content)"></div>
               </div>
+
 
               <div v-if="isLoading" class="message-row assistant">
                 <div class="avatar">🤖</div>
@@ -191,11 +205,13 @@
 import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue';
 import { marked } from 'marked';
 import { sendMessage, generateImage, checkBackendStatus } from '../services/api';
+import { getUserInfo } from '../services/userApi'; // ✅ 引入新 API
 
 // --- 状态管理 ---
 const isOpen = ref(false);
 const activeTab = ref('chat');
 const isBackendOnline = ref(false);
+const userAvatar = ref(null); // 初始为 null，表示未获取到或未登录
 
 // --- 拖拽逻辑 ---
 const ballRef = ref(null);
@@ -261,15 +277,52 @@ const sizeOptions = [
   { name: '4K 超清', res: '2048x2048', val: '4K' }
 ];
 
+
+// AIFloatingButton.vue 中的 fetchAvatar 函数
+const fetchAvatar = async () => {
+  // --- 隔离逻辑开始 ---
+  // 先检查本地是否有用户信息
+  const savedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+  
+  if (!savedUser) {
+    console.log("本地无用户记录，保持访客模式");
+    userAvatar.value = null;
+    return; // 直接结束，不请求后端，彻底避免 Cookie 导致的幽灵登录
+  }
+  // --- 隔离逻辑结束 ---
+
+  try {
+    const res = await getUserInfo();
+    if (res && res.code === 200 && res.data && res.data.avatar) {
+      userAvatar.value = res.data.avatar;
+    } else {
+      userAvatar.value = null;
+    }
+  } catch (err) {
+    userAvatar.value = null; 
+  }
+};
+
 // --- 生命周期 ---
 onMounted(async () => {
-  // 初始位置：右下角
-  ballPos.value = { 
-    x: window.innerWidth - 90, 
-    y: window.innerHeight - 120 
-  };
-  isBackendOnline.value = await checkBackendStatus();
-  window.addEventListener('resize', handleResize);
+    fetchAvatar(); // ✅ 组件挂载时拉取头像
+    // 初始位置：右下角
+    ballPos.value = { 
+      x: window.innerWidth - 90, 
+      y: window.innerHeight - 120 
+    };
+    isBackendOnline.value = await checkBackendStatus();
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('logout-event', () => {
+    userAvatar.value = null; // 退出时立即变回👤
+  });
+  // ✅ 新增：监听自定义登录成功事件（假设你在登录页面成功后触发了此事件）
+    window.addEventListener('login-success', fetchAvatar);
+    
+    // ✅ 原有的退出监听已经有了，确保在退出逻辑里调用了 dispatchEvent('logout-event')
+    window.addEventListener('logout-event', () => {
+        userAvatar.value = null; 
+    });
 });
 
 onUnmounted(() => {
@@ -283,6 +336,7 @@ onUnmounted(() => {
     document.removeEventListener('mouseup', upHandler);
     document.removeEventListener('touchmove', moveHandler);
     document.removeEventListener('touchend', upHandler);
+    window.removeEventListener('login-success', fetchAvatar);
   }
 });
 
@@ -351,7 +405,23 @@ const snapToEdge = () => {
 };
 
 const handleResize = () => { snapToEdge(); };
-const renderContent = (text) => { return marked.parse(text || ''); };
+// 修改 renderContent 函数
+const renderContent = (text) => {
+  if (!text) return '';
+
+  // 配置 marked 选项
+  marked.setOptions({
+    gfm: true,
+    breaks: true,
+    pedantic: false, // 设为 false 可减少一些非标准的 Markdown 误判
+    smartLists: true,
+  });
+
+  // 如果 AI 经常输出多余的波浪线，可以在这里进行正则替换
+  // const cleanText = text.replace(/~~/g, ''); 
+  
+  return marked.parse(text);
+};
 
 // --- 业务逻辑 ---
 const handleSendMessage = async () => {
@@ -551,7 +621,29 @@ const handleDownload = () => {
   width: 42px; height: 42px; border-radius: 12px; background: #e5e7eb;
   display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0;
 }
-/* .user .avatar { background: #FF5E62; } */
+
+/* 用户头像容器 */
+.user .avatar {
+  background: #f0f2f5; /* 未登录时的背景色 */
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 默认👤图标样式 */
+.default-icon {
+  font-size: 20px;
+}
+
+/* 登录后的图片头像样式 */
+.user-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover; /* 核心：防止图片拉伸变形 */
+  border-radius: 50%; /* 如果你的 .avatar 本身是圆角，这里要匹配 */
+}
+
 
 .bubble {
   padding: 16px 20px; border-radius: 20px; font-size: 16px; line-height: 1.6;

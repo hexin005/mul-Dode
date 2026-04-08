@@ -193,6 +193,8 @@ import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import axios from 'axios'; 
 import { uploadAvatar } from '../../services/userApi.js';
+import { logout } from '../../services/userApi.js';
+
 
 
 const router = useRouter();
@@ -338,15 +340,26 @@ const saveAlertThreshold = () => {
   alert('预警阈值保存成功！');
 };
 
-const handleLogout = () => {
-  // 清空所有本地验证数据，代表退出登录
-  localStorage.removeItem('user');
-  sessionStorage.removeItem('user');
-  localStorage.removeItem('token');
-  sessionStorage.removeItem('token');
-  
-  router.push('/');
+const handleLogout = async () => {
+  try {
+    // 1. 先通知后端销毁 Session
+    await logout();
+  } catch (err) {
+    console.error("后端登出失败，强制清理前端状态", err);
+  } finally {
+    // 2. 清空所有本地存储（这步最关键，决定了 AIFloatingButton 是否显示头像）
+    localStorage.clear();
+    sessionStorage.clear();
+    
+    // 3. 广播自定义事件
+    window.dispatchEvent(new CustomEvent('logout-event'));
+    
+    // 4. 物理跳转：使用 href 确保内存中的 Vue 变量（如 userAvatar）被彻底回收
+    window.location.href = '/'; 
+  }
 };
+
+
 </script>
 
 <style scoped>

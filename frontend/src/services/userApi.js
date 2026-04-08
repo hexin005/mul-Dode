@@ -11,6 +11,7 @@ const userAxios = axios.create({
   }
 });
 
+
 // 请求拦截器（可选，统一处理请求头）
 userAxios.interceptors.request.use(
   (config) => {
@@ -56,4 +57,13 @@ export const uploadAvatar = (formData) => {
       'Content-Type': 'multipart/form-data'
     }
   });
+};
+
+export const logout = () => {
+  return userAxios.post('/user/logout');
+};
+
+// src/services/userApi.js 新增
+export const getUserInfo = () => {
+  return userAxios.get('/user/info');
 };
