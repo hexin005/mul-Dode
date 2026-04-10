@@ -1,29 +1,35 @@
 <template>
   <div class="page-container">
-    <!-- 页面组件 -->
-    <component 
-      v-for="(page, index) in pages" 
-      :key="index"
-      :is="page.component"
-      :class="getPageClass(index)"
-      :style="{ zIndex: getPageZIndex(index) }"
-    />
-    
-    <!-- 子组件 -->
-    <NavBar 
-      :currentPage="currentPage" 
-      :navItems="navItems"
-      @nav-click="handleNavClick"
-    />
-    <PageIndicator 
-      :currentPage="currentPage" 
-      :totalPages="pages.length"
-      @indicator-click="handleIndicatorClick"
-    />
-    <HomeButton @home-click="goToHome" />
-    
-    <!-- 使用新的可拖动圆形AI按钮组件 -->
-    <AIFloatingButton />
+    <!-- 页面容器 -->
+    <div class="pages-wrapper">
+      <!-- 页面组件 -->
+      <component 
+        v-for="(page, index) in pages" 
+        :key="index"
+        :is="page.component"
+        :class="getPageClass(index)"
+        :style="{ zIndex: getPageZIndex(index) }"
+      />
+      
+      <!-- 子组件 -->
+      <NavBar 
+        :currentPage="currentPage" 
+        :navItems="navItems"
+        @nav-click="handleNavClick"
+      />
+      <PageIndicator 
+        :currentPage="currentPage" 
+        :totalPages="pages.length"
+        @indicator-click="handleIndicatorClick"
+      />
+      <HomeButton @home-click="goToHome" />
+      
+      <!-- 使用新的可拖动圆形AI按钮组件 -->
+      <AIFloatingButton />
+      
+      <!-- 页脚组件 - 只在最后一个页面显示 -->
+      <Footer v-if="currentPage === pages.length - 1" />
+    </div>
   </div>
 </template>
 
@@ -37,7 +43,6 @@ import Page2 from './pages/Page2.vue'
 import Page3 from './pages/Page3.vue'
 import Page4 from './pages/Page4.vue'
 import Page5 from './pages/Page5.vue'
-import Page6 from './pages/Page6.vue'
 
 // 导入子组件
 import NavBar from './NavBar.vue'
@@ -45,6 +50,8 @@ import PageIndicator from './PageIndicator.vue'
 import HomeButton from './HomeButton.vue'
 // 导入新的AI浮动按钮组件，移除对AIImageGenerator的直接导入
 import AIFloatingButton from './AIFloatingButton.vue'
+// 导入页脚组件
+import Footer from './Footer.vue'
 
 // ★★★ 核心修改：注册 emits 事件，允许向 App.vue 发送信号 ★★★
 const emit = defineEmits(['open-game'])
@@ -68,7 +75,6 @@ const pagePaths = [
   '/page3',
   '/page4',
   '/page5',
-  '/page6'
 ]
 
 // 页面配置 - 修复：使用实际导入的组件对象而不是字符串
@@ -78,7 +84,6 @@ const pages = reactive([
   { component: Page3 },
   { component: Page4 },
   { component: Page5 },
-  { component: Page6 }
 ])
 
 // 导航项配置
@@ -86,27 +91,29 @@ const navItems = reactive([
   { id: 0, name: '首页', target: 'page1' },
   { id: 1, name: '皮影溯源', target: 'page2' },
   { id: 2, name: '影韵万方', target: 'page3' },
-  { id: 3, name: '匠心工艺', target: 'page4' },
-  { id: 4, name: '光影互动', target: 'page5' },
-  { id: 5, name: '焕新传承', target: 'page6' },
+  { id: 3, name: '影魂千年', target: 'page4' },
+  { id: 4, name: '匠心工艺', target: 'page5' }
 ])
 
-// 获取页面类名
+// 获取页面类名 - 简化类名逻辑
 const getPageClass = (index) => {
   if (index === currentPage.value) {
-    // 为当前激活的页面添加根据方向的动画类
-    const isFromAbove = prevPage.value > index
-    return `page active page-transition ${isFromAbove ? 'from-above' : 'from-below'}`
+    return `page active`
   }
   if (index < currentPage.value) return 'page prev'
   return 'page next'
 }
 
-// 获取页面z-index
+// 获取页面z-index - 优化层级管理，确保新页面在上方
 const getPageZIndex = (index) => {
+  // 当前页层级最高
   if (index === currentPage.value) return 10
-  if (index < currentPage.value) return 9 - (currentPage.value - index)
-  return 9 - (index - currentPage.value)
+  // 下一页层级次之，确保从下方进入时在当前页上方
+  if (index === currentPage.value + 1) return 9
+  // 上一页层级再次之，确保从上方退出时在当前页下方
+  if (index === currentPage.value - 1) return 8
+  // 其他页面层级最低
+  return 1
 }
 
 // 安全的路由更新函数
@@ -171,32 +178,58 @@ const setScrollLock = () => {
   isScrolling.value = true
   setTimeout(() => {
     isScrolling.value = false
-  }, 800)
+  }, 600) // 与过渡时间匹配
 }
 
 // 鼠标滚轮事件处理
 const handleWheel = (e) => {
   if (isScrolling.value) return
   
-  e.preventDefault()
-  showHint()
+  // 检查是否在可滚动元素上滚动
+  const target = e.target
+  if (target.scrollHeight > target.clientHeight && target !== document.body) {
+    // 如果目标元素有滚动条，则不阻止默认行为
+    return
+  }
   
-  if (e.deltaY > 0) {
-    // 向下滚动，下一页
-    if (currentPage.value < pages.length - 1) {
-      prevPage.value = currentPage.value
-      currentPage.value++
-      setScrollLock()
-      updateRoute(currentPage.value)
+  // 不在最后一个页面时，阻止默认滚动行为并触发页面切换
+  if (currentPage.value < pages.length - 1) {
+    e.preventDefault()
+    showHint()
+    
+    if (e.deltaY > 0) {
+      // 向下滚动，下一页
+      if (currentPage.value < pages.length - 1) {
+        prevPage.value = currentPage.value
+        currentPage.value++
+        setScrollLock()
+        updateRoute(currentPage.value)
+      }
+    } else {
+      // 向上滚动，上一页
+      if (currentPage.value > 0) {
+        prevPage.value = currentPage.value
+        currentPage.value--
+        setScrollLock()
+        updateRoute(currentPage.value)
+      }
     }
   } else {
-    // 向上滚动，上一页
-    if (currentPage.value > 0) {
-      prevPage.value = currentPage.value
-      currentPage.value--
-      setScrollLock()
-      updateRoute(currentPage.value)
+    // 在最后一个页面时，检查页面是否已经滚动到顶部
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+    
+    // 如果页面已经滚动到顶部，且向上滚动，则触发页面切换
+    if (scrollTop === 0 && e.deltaY < 0) {
+      if (currentPage.value > 0) {
+        e.preventDefault()
+        showHint()
+        prevPage.value = currentPage.value
+        currentPage.value--
+        setScrollLock()
+        updateRoute(currentPage.value)
+      }
     }
+    // 否则允许默认滚动行为（滚动到页脚或从页脚滚动回页面）
   }
 }
 
@@ -235,9 +268,11 @@ const handleKeydown = (e) => {
 
 // 触摸事件处理
 let touchStartY = 0
+let touchStartTime = 0
 
 const handleTouchStart = (e) => {
   touchStartY = e.touches[0].clientY
+  touchStartTime = Date.now()
 }
 
 const handleTouchEnd = (e) => {
@@ -245,25 +280,51 @@ const handleTouchEnd = (e) => {
   
   const touchEndY = e.changedTouches[0].clientY
   const diff = touchStartY - touchEndY
+  const touchDuration = Date.now() - touchStartTime
   
-  if (Math.abs(diff) > 50) {
-    if (diff > 0) {
-      // 向下滑动，下一页
-      if (currentPage.value < pages.length - 1) {
-        prevPage.value = currentPage.value
-        currentPage.value++
-        showHint()
-        setScrollLock()
-        updateRoute(currentPage.value)
+  // 只有当滑动距离足够且时间较短时才触发页面切换
+  if (Math.abs(diff) > 50 && touchDuration < 500) {
+    // 检查是否在可滚动元素上滑动
+    const target = e.target
+    if (target.scrollHeight > target.clientHeight && target !== document.body) {
+      // 如果目标元素有滚动条，则不触发页面切换
+      return
+    }
+    
+    // 不在最后一个页面时，触发页面切换
+    if (currentPage.value < pages.length - 1) {
+      if (diff > 0) {
+        // 向下滑动，下一页
+        if (currentPage.value < pages.length - 1) {
+          prevPage.value = currentPage.value
+          currentPage.value++
+          showHint()
+          setScrollLock()
+          updateRoute(currentPage.value)
+        }
+      } else {
+        // 向上滑动，上一页
+        if (currentPage.value > 0) {
+          prevPage.value = currentPage.value
+          currentPage.value--
+          showHint()
+          setScrollLock()
+          updateRoute(currentPage.value)
+        }
       }
     } else {
-      // 向上滑动，上一页
-      if (currentPage.value > 0) {
-        prevPage.value = currentPage.value
-        currentPage.value--
-        showHint()
-        setScrollLock()
-        updateRoute(currentPage.value)
+      // 当在最后一个页面时，检查页面是否已经滚动到顶部
+      const scrollTop = window.pageYOffset || document.documentElement.scrollTop
+      
+      // 如果页面已经滚动到顶部，且向上滑动，则触发页面切换
+      if (scrollTop === 0 && diff < 0) {
+        if (currentPage.value > 0) {
+          showHint()
+          prevPage.value = currentPage.value
+          currentPage.value--
+          setScrollLock()
+          updateRoute(currentPage.value)
+        }
       }
     }
   }
@@ -312,17 +373,37 @@ onUnmounted(() => {
 
 <style scoped>
 .page-container {
-  position: relative;
-  height: 100vh;
+  min-height: 100vh;
   overflow: hidden;
+  position: relative;
+  /* 隐藏滚动条但保留滚动功能 */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+/* 隐藏 WebKit 浏览器的滚动条 */
+.page-container::-webkit-scrollbar {
+  display: none;
+}
+
+.pages-wrapper {
+  position: relative;
+  min-height: 100vh;
+  overflow: hidden;
+  /* 隐藏滚动条但保留滚动功能 */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+/* 隐藏 WebKit 浏览器的滚动条 */
+.pages-wrapper::-webkit-scrollbar {
+  display: none;
 }
 
 .page {
-  position: absolute;
-  top: 0;
-  left: 0;
+  position: relative;
   width: 100%;
-  height: 100%;
+  height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -330,72 +411,41 @@ onUnmounted(() => {
   font-size: 48px;
   color: white;
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
-  transition: transform 0.8s cubic-bezier(0.65, 0, 0.35, 1);
+  /* 只保留transform过渡，移除opacity过渡，避免消失动画 */
+  transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   will-change: transform;
+  backface-visibility: hidden;
 }
 
+/* 当前活动页面 - 居中显示 */
 .page.active {
   transform: translateY(0);
+  opacity: 1; /* 始终保持可见 */
+  position: relative;
+  z-index: 10;
 }
 
+/* 上一页 - 完全移出屏幕上方，没有淡出效果 */
 .page.prev {
   transform: translateY(-100%);
+  opacity: 1; /* 始终保持不透明，避免淡出 */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 9;
 }
 
+/* 下一页 - 完全移出屏幕下方，没有淡出效果 */
 .page.next {
   transform: translateY(100%);
+  opacity: 1; /* 始终保持不透明，避免淡出 */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  z-index: 9;
 }
-
-/* 通用页面进入动画 - 从上方进入 */
-.page-transition.from-above {
-  animation: pageEnterFromAbove 1.2s ease-out forwards;
-  opacity: 0;
-}
-
-@keyframes pageEnterFromAbove {
-  0% {
-    opacity: 0;
-    transform: translateY(-100%) scale(0.95);
-  }
-  60% {
-    opacity: 1;
-    transform: translateY(10px) scale(1.02);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-/* 通用页面进入动画 - 从下方进入 */
-.page-transition.from-below {
-  animation: pageEnterFromBelow 1.2s ease-out forwards;
-  opacity: 0;
-}
-
-@keyframes pageEnterFromBelow {
-  0% {
-    opacity: 0;
-    transform: translateY(100%) scale(0.95);
-  }
-  60% {
-    opacity: 1;
-    transform: translateY(-10px) scale(1.02);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-/* 增强翻页效果，让前一页有轻微的旋转和缩小 */
-.page.prev {
-  transform: translateY(-100%) rotateX(15deg) scale(0.95);
-  opacity: 0.8;
-  transition: transform 0.8s cubic-bezier(0.65, 0, 0.35, 1), opacity 0.8s ease;
-}
-
-/* 现有样式保持不变 */
 
 /* 添加AI功能按钮样式 */
 .ai-feature-btn {

@@ -1,384 +1,549 @@
 <template>
-  <section id="make" class="section make">
+  <div class="heritage-page">
     <div class="container">
-        <h2 class="section-title">探秘皮影制作，邂逅千年匠心</h2>
-      <!-- 制作流程主容器 -->
-      <div class="make-container">
-        <div class="step-name">
-          <span>{{ currentStep.name }}</span>
-        </div>
-        <div class="step-details">
-          <div class="step-image-container">
-            <img
-              :src="currentStep.image"
-              :alt="currentStep.name"
-              class="step-image"
-              @load="onImageLoad"
-              @error="onImageError"
-            />
-          </div>
-          <div class="step-description">
-            {{ currentStep.description }}
-          </div>
+      <div class="card first-card">
+        <div class="content">
+          <div class="title">皮</div>
+          <div class="title">影</div>
+          <div class="title">类</div>
+          <div class="title">别</div>
         </div>
       </div>
-      
-      <!-- 时间轴导航 -->
-      <div class="timeline">
-        <div
-          v-for="(step, index) in steps"
-          :key="index"
-          class="timeline-step"
-          :class="{ 
-            active: index === currentStepIndex,
-            completed: index < currentStepIndex
-          }"
-          @click="goToStep(index)"
-          :style="{ '--order': index + 1 }"
-        >
-          <span class="step-label">{{ step.name }}</span>
+
+      <!-- 其他卡片 -->
+      <div 
+        v-for="(card, index) in cards" 
+        :key="index" 
+        class="card" 
+        :class="`card-${index+2}`"
+      >
+        <div class="content">
+          <div class="sub-title" v-html="splitTitle(card.title)"></div>
+          <button class="view-more" @click="showModal(index)">查看更多</button>
         </div>
       </div>
     </div>
-  </section>
+
+    <!-- 弹窗 -->
+    <div class="modal-overlay" :class="{ active: showModalFlag }" @click="closeModal">
+      <div class="modal-content" @click.stop>
+        <div class="modal-image">
+          <div class="carousel-container">
+            <img 
+              v-for="(item, index) in currentCard.images" 
+              :key="index"
+              :src="item"
+              class="carousel-slide-img" 
+              :class="{ 
+                active: currentSlide === index,
+                prev: currentSlide > index,
+                next: currentSlide < index
+              }"
+            />
+          </div>
+          <div class="carousel-controls">
+            <div 
+              v-for="(item, index) in currentCard.images" 
+              :key="index"
+              class="carousel-dot" 
+              :class="{ active: currentSlide === index }"
+              @click="goToSlide(index)"
+            ></div>
+          </div>
+        </div>
+        <div class="modal-text">
+          <h2 class="modal-title">{{ currentCard.title }}</h2>
+          <p class="modal-description">{{ currentCard.fullDescription }}</p>
+        </div>
+        <button class="close-btn" @click="closeModal">×</button>
+      </div>
+    </div>
+  </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, onUnmounted } from 'vue'
 
-const currentStepIndex = ref(0)
-const imageLoading = ref(false)
-const imageError = ref(false)
-
-const steps = reactive([
+// 卡片数据
+const cards = reactive([
   {
-    name: '选皮',
-    image: '/src/asset/img/step_1.png',
-    description: '一般选用牛皮、羊皮、驴皮等，比如陇东皮影常选年轻、毛色黑的公牛皮，其厚薄适中，质坚而柔韧，青中透明。优质皮料的选择是制作精美皮影的基础，匠人们通常会亲自挑选，确保皮质均匀、无瑕疵。'
+    title: '头茬',
+    fullDescription: '皮影头茬是皮影戏中人物头像的雕刻造型，是用牛皮或驴皮经硝皮、雕刻、上色等工序制成的戏曲道具，堪称皮影戏的"脸谱"。它按角色行当分为生、旦、净、丑等类型，五官造型与色彩均有程式化的象征意义——红色表忠勇、黑色表刚正、白色表奸诈，不同的眉眼鼻型则暗示人物的性格与身份。皮影头茬起源于西汉，鼎盛于明清，全国各地形成了陕西、河北、河南、四川等不同风格流派。2006年入选中国国家级非物质文化遗产，2011年被列入联合国教科文组织人类非物质文化遗产代表作名录。它不仅是表演道具，更是民间雕刻艺术与戏曲艺术的完美结合，浓缩了中国传统美学与民俗信仰于方寸之间，被誉为世界上最早的"动画"艺术。',
+    images: ['src/asset/img/tc-01.png', 'src/asset/img/tc-02.png', 'src/asset/img/tc-03.png', 'src/asset/img/tc-04.png', 'src/asset/img/tc-05.png', 'src/asset/img/tc-06.png']
   },
   {
-    name: '制皮',
-    image: '/src/asset/img/step_2.png',
-    description: '将选好的牛皮在洁净凉水里浸泡两、三天，取出用刀刮制，刮去牛毛、肉渣，逐渐刮薄，每刮一次用清水浸泡一次，刮好后撑于木架之上，阴干。这一过程需要极大的耐心和技巧，以确保皮质均匀透亮。'
+    title: '影身',
+    fullDescription: '皮影影身是皮影戏中人物除头部以外的全身造型，包括躯干、上肢、下肢及服饰，通常高约30至40厘米，通过竹签与头茬插接组合使用。影身是皮影艺术中工艺最精湛、装饰最繁复的部分，其服饰上布满龙凤纹、祥云纹、花卉纹等吉祥图案，关节处采用镂空雕刻以实现灵活转动，在幕后灯光照射下投射出独特的半透明光影美学。影身与头茬采用可拆卸组合的演出体制——同一身段可搭配不同头茬饰演不同角色，一物多用，极大丰富了表演的灵活性。影身按服饰等级分为龙袍身、官服身、短打身等多种类型，色彩与纹样也因角色身份和使用场景而异。它不仅是演出道具，更是民间雕刻技艺与服饰美学的集大成者，浓缩了老百姓对各朝代服饰制度的想象及对吉祥美好生活的祈愿。',
+     images: ['src/asset/img/ys_01.png', 'src/asset/img/ys_02.png', 'src/asset/img/ys_03.png', 'src/asset/img/ys_04.png', 'src/asset/img/ys_05.png', 'src/asset/img/ys_06.png']
   },
   {
-    name: '画稿',
-    image: '/src/asset/img/step_3.png',
-    description: '按人物不同身份和个性设计形象，有专门的"样谱"，将创作理念形成初步画面。传统皮影人物造型讲究"五分脸"，即正侧面的形象，这是皮影艺术的独特表现方式。'
+    title: '云朵子',
+    fullDescription: '皮影云朵子是皮影戏中为神、佛、妖、怪等超自然角色设计的云彩造型道具，是这类角色腾云驾雾的专属"座驾"。它以云纹为底，将神祇形象与宗教意象巧妙融合，既是民间信仰的视觉化呈现，也是戏剧美学与雕刻艺术的结晶。云朵子的形象渊源可追溯至汉代画像石与历代壁画中的"神案"形象，经明清皮影艺人继承发展，在方寸牛皮上构建出气势恢宏的神话世界，承载着中国人对天界神祇的想象与祈愿，是皮影艺术中文化含量最高、最具浪漫气质的道具门类之一。',
+    images: ['src/asset/img/ydz-01.png', 'src/asset/img/ydz-02.png', 'src/asset/img/ydz-03.png', 'src/asset/img/ydz-04.png', 'src/asset/img/ydz-05.png', 'src/asset/img/ydz-06.png']
   },
   {
-    name: '过稿',
-    image: '/src/asset/img/step_4.png',
-    description: '把刮好的皮分解成块，用湿布潮软，用特制推板加油汁推摩，使皮平展光滑，再用钢针把部件轮廓和图案纹样拷贝、描绘在皮面上。这一步需要精准的手法，以确保图案线条流畅。'
+    title: '桌椅',
+    fullDescription: '皮影桌椅是皮影戏中用于装点室内环境、区分社会等级、营造叙事空间的重要道具，分为龙桌龙椅、相桌相椅、绣桌绣墩、佛桌仙桌、福寿桌椅及普通百姓桌椅等多个等级，分别对应皇帝、宰相、闺秀、神仙、寿宴及民间等不同场景。皮影桌椅采用半侧面程式化造型，桌腿、桌面、椅背等处精雕祥云、龙凤、牡丹、莲花等吉祥纹样，在幕后灯光照射下呈现出独特的镂空光影美学。它不仅是演出中的环境道具，更以直观的方式浓缩了中国传统家具制度与礼制秩序的民间想象，是皮影"影中世界"不可或缺的空间叙事元素，寄托着百姓对福禄寿喜的美好祈愿。',
+    images: ['src/asset/img/zy-01.png', 'src/asset/img/zy-02.png', 'src/asset/img/zy-03.png', 'src/asset/img/zy-04.png', 'src/asset/img/zy-05.png', 'src/asset/img/zy-06.png']
   },
   {
-    name: '镂刻',
-    image: '/src/asset/img/step_5.png',
-    description: '使用宽窄不同的斜口刀、平刀、圆刀等多种刀具，根据不同纹样选择刀具雕刻，如线状纹样用平刀扎，直线条纹样用平刀推。这是最考验匠人功力的环节，一刀失误可能前功尽弃。'
-  },
-  {
-    name: '敷彩',
-    image: '/src/asset/img/step_6.png',
-    description: '主要使用红、黄、青、绿、黑五种纯色，一般互不调配，通过深浅色区分层次，进行平涂，双面着色，老艺人常自己炮制颜色。传统颜料多来自矿物和植物，色彩鲜艳持久。'
-  },
-  {
-    name: '熨平',
-    image: '/src/asset/img/step_7.png',
-    description: '目的是使敷彩吃入牛皮内并挥发皮内水分，可用薄木板夹、烙铁烫或土坯砖块搭人字用麦秸烧热压平等方法，过去用"弹指点水"判断温度。这一步骤决定了皮影的平整度和耐久性。'
-  },
-  {
-    name: '缀结',
-    image: '/src/asset/img/step_8.png',
-    description: '皮影人物通常有头颅、胸、腹等十一个部件，在关节点用牛皮刻成的枢钉或细牛皮条搓成的线缀结合成，再装置三根竹棍作操纵杆。组装后的皮影人物关节灵活，便于表演各种动作。'
+    title: '衬景',
+    fullDescription: '皮影衬景是皮影戏中用于构建戏剧空间、烘托环境氛围的大型布景道具，又称景片，大者可高约一米、宽两米余，需由数块牛皮拼接刻制而成。衬景涵盖宫殿、绣楼、营帐、花园、水晶宫、天宫等建筑与自然景观类型，以及皇帝出巡图、水族仪仗队等宏大场面，是皮影艺术中体量最大、气势最壮、雕刻最繁复的组成部分。其建筑造型严格参照中国古代建筑形制，雕梁画栋、斗拱飞檐一应俱全，同时融入大量吉祥纹样与民间美术元素。衬景充分利用牛皮镂空透光的特性，通过多层景片叠加营造出虚实交错、纵深感极强的舞台空间效果，是皮影"影中世界"时空叙事的关键工具，既承载了中国古代建筑制度的民间记忆，也浓缩了民间艺人惊人的艺术想象力与雕刻技艺的巅峰水准。',
+    images: ['src/asset/img/bj-01.png', 'src/asset/img/bj-02.png', 'src/asset/img/bj-03.png', 'src/asset/img/bj-04.png', 'src/asset/img/bj-05.png', 'src/asset/img/bj-06.png']
   }
 ])
 
-const currentStep = ref(steps[0])
+// 响应式数据
+const showModalFlag = ref(false)
+const currentSlide = ref(0)
+const currentCard = reactive({
+  title: '',
+  fullDescription: '',
+  images: []
+})
+let slideInterval = null
 
-const goToStep = (index) => {
-  currentStepIndex.value = index
-  currentStep.value = steps[index]
-  imageLoading.value = true
-  imageError.value = false
+// 方法
+const showModal = (index) => {
+  currentCard.title = cards[index].title
+  currentCard.fullDescription = cards[index].fullDescription
+  currentCard.images = [...(cards[index].images || [])] // 如果有images字段则使用，否则为空数组
+  showModalFlag.value = true
+  startAutoSlide()
 }
 
-const onImageLoad = () => {
-  imageLoading.value = false
-  imageError.value = false
+const closeModal = () => {
+  showModalFlag.value = false
+  stopAutoSlide()
 }
 
-const onImageError = () => {
-  imageLoading.value = false
-  imageError.value = true
-  console.error(`图片加载失败: ${currentStep.value.image}`)
+const darkenColor = (color, percent) => {
+  const num = parseInt(color.slice(1), 16)
+  const amt = Math.round(2.55 * percent)
+  const R = (num >> 16) - amt
+  const G = ((num >> 8) & 0x00FF) - amt
+  const B = (num & 0x0000FF) - amt
+  return "#" + (0x1000000 + (R < 0 ? 0 : R) * 0x10000 + (G < 0 ? 0 : G) * 0x100 + (B < 0 ? 0 : B)).toString(16).slice(1)
 }
 
+const goToSlide = (slideIndex) => {
+  currentSlide.value = slideIndex
+}
+
+const nextSlide = () => {
+  const length = currentCard.images.length
+  currentSlide.value = (currentSlide.value + 1) % length
+}
+
+const startAutoSlide = () => {
+  stopAutoSlide()
+  slideInterval = setInterval(nextSlide, 2000)
+}
+
+const stopAutoSlide = () => {
+  if (slideInterval) {
+    clearInterval(slideInterval)
+    slideInterval = null
+  }
+}
+
+const ensureFullWidth = () => {
+  const container = document.querySelector('.container')
+  if (container) {
+    container.style.width = window.innerWidth + 'px'
+  }
+}
+
+// 拆分标题为单个字符，用于竖排显示
+const splitTitle = (title) => {
+  return title.split('').map(char => `<span>${char}</span>`).join('');
+}
+
+// 生命周期
 onMounted(() => {
-  // 初始化第一个步骤
-  imageLoading.value = true
+  window.addEventListener('resize', ensureFullWidth)
+  ensureFullWidth()
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', ensureFullWidth)
+  stopAutoSlide()
 })
 </script>
 
 <style scoped>
-.section{
-  padding: 4rem 0;
-  background: linear-gradient(135deg, #fffef5 0%, #fffeee 50%, #fffef5 100%);
-  min-height: 100vh;
-  color: black;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
-.make {
-  font-family: "Noto Serif SC", "SimSun", "宋体", serif;
-  position: relative;
+
+.heritage-page {
+  font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft Yahei', Arial, sans-serif;
+  background-color: #0a3d31;
   overflow: hidden;
+  width: 100vw;
+  height: 100vh;
 }
+
 .container {
-  position: relative;
-  z-index: 1;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 2rem;
-}
-
-/* 页面标题样式 */
-.section-title {
-  font-size: 2.5rem;
-  font-weight: 700;
-  color: #9E613B; /* 棕色系，与皮影传统色彩相符 */
-  text-align: center;
-  margin-bottom: 3rem;
-  padding: 1rem 0;
-  background: linear-gradient(135deg, #9E613B 0%, #D4A76A 50%, #9E613B 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-  text-shadow: 2px 2px 4px rgba(125, 78, 42, 0.1);
-  letter-spacing: 2px;
-}
-
-.make-container {
-  width: 1100px;
-  height: 550px;
   display: flex;
-  justify-content: space-between;
-  margin-bottom: 3rem;
-  background: linear-gradient(145deg, #ffffff, #fffcf8);
-  border-radius: 20px;
+  width: 100vw;
+  height: 100vh;
   overflow: hidden;
-  box-shadow: 
-    0 10px 30px rgba(125, 78, 42, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  border: 1px solid rgba(201, 168, 124, 0.25);
+}
+
+/* 所有卡片等宽 */
+.card {
   position: relative;
-}
-.make-container:hover {
-  transform: translateY(-5px) scale(1.005);
-  box-shadow: 
-    0 20px 45px rgba(125, 78, 42, 0.12),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
-}
-.step-name {
-  width: 20%;
-  text-align: center;
+  flex: 1;
+  height: 100%;
   display: flex;
-  flex-direction: column;
+  align-items: flex-start;
   justify-content: center;
-  align-items: center;
-  color: white;
-  background: linear-gradient(135deg, #9E613B, #D4A76A, #9E613B);
-  padding: 2.5rem 1.5rem;
-  position: relative;
-  overflow: hidden;
-}
-.step-name::before {
-  content: "";
-  position: absolute;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.12), transparent);
-  transform: rotate(45deg);
-  animation: shimmer 3s infinite linear;
-  z-index: 1;
-}
-@keyframes shimmer {
-  0% { transform: rotate(45deg) translateX(-100%); }
-  100% { transform: rotate(45deg) translateX(100%); }
-}
-.step-name span {
-  position: relative;
-  z-index: 2;
-  font-size: 2.4rem;
-  font-weight: 700;
-  text-shadow: 1px 1px 6px rgba(0, 0, 0, 0.3);
-  margin-bottom: 1rem;
-  letter-spacing: 2px;
-  color: #FFFCF5; 
-}
-.step-details {
-  width: 80%;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 3rem;
-}
-.step-image-container {
-  position: relative;
-  width: 480px;
-  height: 340px;
-  margin-bottom: 2rem;
-  perspective: 1200px;
-  border-radius: 15px;
-  overflow: hidden;
-  background: linear-gradient(145deg, #f8f9fa, #e9ecef);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
-}
-.step-image {
-  width: 100%;
-  height: 100%; 
-  border-radius: 10px;
-  object-fit: fill; 
-  border: 5px solid white;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.15);
-  transition: all 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  transform-style: preserve-3d;
-}
-.step-image:hover {
-  transform: rotateY(5deg) scale(1.02);
-  box-shadow: 5px 10px 30px rgba(0, 0, 0, 0.25);
-}
-.step-description {
-  background: linear-gradient(145deg, #ffffff, #fffcf8);
-  padding: 1.5rem;
-  border-radius: 15px;
-  box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
-  font-size: 1rem;
-  line-height: 1.8;
-  width: 100%;
-  text-align: justify;
-  border-left: 6px solid #D4A76A; /* 使用具体颜色值，避免CSS变量 */
-  position: relative;
-  color: #5C4033; /* 更换为更深一些的棕色，避免重影效果 */
-  font-weight: 400;
-  text-shadow: none; /* 明确移除文字阴影 */
-  text-rendering: optimizeLegibility; /* 优化文字渲染 */
-  -webkit-font-smoothing: antialiased; /* 抗锯齿处理 */
-  -moz-osx-font-smoothing: grayscale; /* 平滑渲染 */
-}
-/* 时间轴样式 */
-.timeline {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 2rem 0;
-  margin: 3rem 0;
-  position: relative;
-}
-
-.timeline::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 5%;
-  right: 5%;
-  height: 4px;
-  background: linear-gradient(90deg, 
-    #7D4E2A 0%, 
-    #C9A87C 50%, 
-    #7D4E2A 100%);
-  transform: translateY(-50%);
-  z-index: 1;
-  border-radius: 2px;
-  box-shadow: 0 2px 8px rgba(125, 78, 42, 0.12);
-}
-
-.timeline-step {
+  transition: all 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   cursor: pointer;
-  transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  position: relative;
-  z-index: 2;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+/* 皮影类别卡片背景改为图片 */
+.first-card {
+  background-image: url(../../asset/img/fm-0.png);
+  background-size: cover;
+  background-position: center;
+  cursor: default;
+}
+
+.card-2 {
+  background-image: url(../../asset/img/fm-1.png);
+  background-size: cover;
+  background-position: left; 
+}
+
+.card-2:hover {
+  background-position: center; /* 悬停时背景图片居中，展示全部 */
+}
+
+.card-3 {
+  background-image: url(../../asset/img/fm-2.png);
+  background-size: cover;
+  background-position: left; 
+}
+.card-3:hover {
+  background-position: center; /* 悬停时背景图片居中，展示全部 */
+}
+
+.card-4 {
+   background-image: url(../../asset/img/fm-3.png);
+  background-size: cover;
+  background-position: left; 
+}
+.card-4:hover {
+  background-position: center; /* 悬停时背景图片居中，展示全部 */
+}
+
+.card-5 {
+  background-image: url(../../asset/img/fm-4.png);
+  background-size: cover;
+  background-position: left; 
+}
+
+.card-6 {
+  background-image: url(../../asset/img/fm-5.png);
+  background-size: cover;
+  background-position: left; 
+}
+
+/* 文字颜色优化 */
+.first-card,
+.card-3,
+.card-4,
+.card-5,
+.card-6 {
+  color: #f0f0f0;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.card-2 {
+  color: #2c3e50;
+}
+
+/* 内容区域 */
+.content {
+  padding: 20px;
+  text-align: left;
+  width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  min-width: 110px;
-  padding: 1rem 0;
-}
-
-.step-label {
-  font-size: 1.3rem;
-  font-weight: 600;
-  color: #6B4F36; /* 调浅默认文字颜色 */
-  transition: all 0.3s ease;
-  text-align: center;
-  padding: 0.8rem 1.5rem;
-  border-radius: 25px;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border: 2px solid rgba(201, 168, 124, 0.2);
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+  justify-content: center;
+  align-items: flex-start;
   position: relative;
   z-index: 2;
 }
 
-.timeline-step.active .step-label {
-  color: #7D4E2A;
-  background: rgba(201, 168, 124, 0.15);
-  font-weight: 700;
-  transform: translateY(-3px);
-  border-color: #C9A87C;
-  box-shadow: 0 6px 20px rgba(125, 78, 42, 0.2);
+/* 标题样式 */
+.title {
+  font-size: 36px;
+  font-weight: bold;
+  margin-bottom: 5px;
+  font-family: 'Source Han Serif', 'Songti SC', serif;
+  letter-spacing: 2px;
 }
 
-.timeline-step:hover .step-label {
-  color: #7D4E2A;
-  transform: translateY(-4px);
-  background: rgba(201, 168, 124, 0.1);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+.sub-title {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 30px;
+  line-height: 1.8;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  text-align: left;
+  font-family: 'Source Han Serif', 'Songti SC', serif;
 }
 
-/* 响应式设计 */
-@media (max-width: 1200px) {
-  .step-label {
-    font-size: 1.2rem;
-    padding: 0.7rem 1.2rem;
-  }
+.sub-title span {
+  display: block;
+  margin: 0;
 }
 
-@media (max-width: 768px) {
-  .timeline {
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 1rem;
-    padding: 1.5rem 0;
-  }
-  
-  .timeline::before {
-    display: none;
-  }
-  
-  .timeline-step {
-    min-width: 100px;
-    margin: 0.5rem;
-  }
-  
-  .step-label {
-    font-size: 1.1rem;
-    padding: 0.6rem 1rem;
-  }
+/* 查看更多按钮 - 竖排显示 */
+.view-more {
+  font-size: 14px;
+  padding: 10px 5px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.15);
+  cursor: pointer;
+  transition: all 0.3s ease;
+  border: none;
+  color: inherit;
+  writing-mode: vertical-rl;
+  text-orientation: upright;
+  text-align: left;
+  display: inline-block;
+  letter-spacing: 2px;
 }
 
-@media (max-width: 480px) {
-  .timeline-step {
-    min-width: 85px;
-  }
-  
-  .step-label {
-    font-size: 1rem;
-    padding: 0.5rem 0.8rem;
-  }
+.card-2 .view-more {
+  background: rgba(0, 0, 0, 0.1);
+  color: #333;
+}
+
+.first-card {
+  flex: 1 !important;
+  transform: none !important;
+  box-shadow: none !important;
+  z-index: 1 !important;
+}
+
+.first-card:hover {
+  flex: 1 !important;
+  transform: none !important;
+  box-shadow: none !important;
+  z-index: 1 !important;
+}
+
+.first-card .content {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.first-card .title {
+  font-size: 36px;
+  margin: 8px 0;
+  line-height: 1;
+}
+
+/* 第一个卡片没有查看更多按钮 */
+.first-card .view-more {
+  display: none;
+}
+
+/* 悬停效果 - 只应用于第2-6个卡片 */
+.card-2:hover,
+.card-3:hover,
+.card-4:hover,
+.card-5:hover,
+.card-6:hover {
+  flex: 2.2;
+  z-index: 10;
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.3);
+}
+
+/* 当有卡片悬停时，其他卡片（除了第一个和当前悬停的）等宽缩小 */
+.container:hover .card-2:not(:hover),
+.container:hover .card-3:not(:hover),
+.container:hover .card-4:not(:hover),
+.container:hover .card-5:not(:hover),
+.container:hover .card-6:not(:hover) {
+  flex: 0.8;
+  opacity: 0.85;
+}
+
+/* 第一个卡片在任何情况下都不受影响 */
+.container:hover .first-card {
+  flex: 1 !important;
+  opacity: 1 !important;
+}
+
+/* 弹窗样式 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+
+.modal-overlay.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.modal-content {
+  width: 80%;
+  max-width: 900px;
+  height: 70%;
+  background-color: white;
+  border-radius: 10px;
+  display: flex;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  transform: scale(0.8);
+  transition: transform 0.3s ease;
+  position: relative;
+}
+
+.modal-overlay.active .modal-content {
+  transform: scale(1);
+}
+
+.modal-image {
+  width: 40%;
+  position: relative;
+  overflow: hidden;
+}
+
+.carousel-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.carousel-slide-img {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: center;
+  opacity: 0;
+  transition: all 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  transform: translateX(100%);
+}
+
+.carousel-slide-img.active {
+  opacity: 1;
+  transform: translateX(0);
+  z-index: 2;
+}
+
+.carousel-slide-img.prev {
+  transform: translateX(-100%);
+  opacity: 0;
+  z-index: 1;
+}
+
+.carousel-slide-img.next {
+  transform: translateX(100%);
+  opacity: 0;
+  z-index: 1;
+}
+
+.carousel-controls {
+  position: absolute;
+  bottom: 20px;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  z-index: 10;
+}
+
+.carousel-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background-color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.carousel-dot.active {
+  background-color: white;
+  transform: scale(1.2);
+}
+
+.modal-text {
+  width: 60%;
+  padding: 40px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.modal-title {
+  font-size: 32px;
+  font-weight: bold;
+  margin-bottom: 20px;
+  color: #2c3e50;
+  font-family: 'Source Han Serif', 'Songti SC', serif;
+}
+
+.modal-description {
+  font-size: 18px;
+  line-height: 1.8;
+  color: #34495e;
+  font-family: 'PingFang SC', 'Hiragino Sans GB', 'Microsoft Yahei', Arial, sans-serif;
+}
+
+.close-btn {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  font-size: 30px;
+  color: #fff;
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.3);
+  transition: background-color 0.3s;
+  z-index: 1001;
+}
+
+.close-btn:hover {
+  background-color: rgba(0, 0, 0, 0.5);
 }
 </style>

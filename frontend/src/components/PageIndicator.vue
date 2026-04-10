@@ -40,14 +40,14 @@ export default {
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background-color: rgba(255, 255, 255, 0.5);
+  background-color: rgba(185, 27, 27, 0.5);
   margin: 10px 0;
   cursor: pointer;
   transition: all 0.3s;
 }
 
 .indicator-dot.active {
-  background-color: white;
+  background-color: rgb(150, 21, 21);
   transform: scale(1.2);
 }
 </style>

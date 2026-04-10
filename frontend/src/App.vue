@@ -7,6 +7,9 @@
           <component :is="Component" />
         </transition>
       </router-view>
+      
+      <!-- 页脚组件 -->
+      <Footer />
     </template>
 
     <template v-else>
@@ -18,11 +21,13 @@
 
 <script>
 import PageContainer from './components/PageContainer.vue'
+import Footer from './components/Footer.vue'
 
 export default {
   name: 'App',
   components: {
-    PageContainer
+    PageContainer,
+    Footer
   }
 }
 </script>
@@ -38,10 +43,34 @@ body {
   font-family: "Microsoft YaHei", sans-serif;
   height: 100vh;
   overflow-x: hidden;
+  /* 隐藏滚动条但保留滚动功能 */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+/* 隐藏 WebKit 浏览器的滚动条 */
+body::-webkit-scrollbar {
+  display: none;
 }
 
 #app {
-  height: 100vh;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+#app > *:not(:last-child) {
+  flex: 1;
+}
+
+/* 为直接使用 router-view 的页面添加页脚样式 */
+#app > template:first-child {
+  display: flex;
+  flex-direction: column;
+}
+
+#app > template:first-child > router-view {
+  flex: 1;
 }
 
 /* 路由过渡动画 */

@@ -17,7 +17,7 @@ export default {
   bottom: 20px;
   right: 20px;
   background: rgba(255, 255, 255, 0.2);
-  color: white;
+  color: rgb(169, 18, 18);
   border: none;
   border-radius: 50%;
   width: 50px;

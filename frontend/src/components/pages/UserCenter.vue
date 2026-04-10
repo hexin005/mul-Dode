@@ -13,9 +13,9 @@
 
         <nav class="nav-list">
           <div class="nav-item" :class="{ active: activeTab === 'profile' }" @click="activeTab = 'profile'">我的名帖</div>
-          <div class="nav-item" :class="{ active: activeTab === 'collection' }">传世收藏</div>
-          <div class="nav-item" :class="{ active: activeTab === 'footprint' }">光影足迹</div>
-          <div class="nav-item" :class="{ active: activeTab === 'apiUsage' }" @click="activeTab = 'apiUsage'">API用量监控</div>
+          <!-- <div class="nav-item" :class="{ active: activeTab === 'collection' }">传世收藏</div> -->
+          <!-- <div class="nav-item" :class="{ active: activeTab === 'footprint' }">光影足迹</div> -->
+          <!-- <div class="nav-item" :class="{ active: activeTab === 'apiUsage' }" @click="activeTab = 'apiUsage'">API用量监控</div> -->
         </nav>
         
         <div class="logout-wrapper">
@@ -40,7 +40,7 @@
             </div>
           </section>
 
-          <section class="stats-grid">
+          <!-- <section class="stats-grid">
             <div class="stat-box">
               <span class="label">入阁天数</span>
               <span class="value">12</span>
@@ -53,7 +53,7 @@
               <span class="label">收藏皮影</span>
               <span class="value">28</span>
             </div>
-          </section>
+          </section> -->
 
           <section class="settings-form">
             <h3 class="section-title">详细资料</h3>
